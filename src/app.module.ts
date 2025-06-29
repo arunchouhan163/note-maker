@@ -21,6 +21,6 @@ import { NoteModule } from './note/note.module';
     }),
     NoteModule,
   ],
-  controllers: [AppController],
+  controllers: [],
 })
 export class AppModule {} 

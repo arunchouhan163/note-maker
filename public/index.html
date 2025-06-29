@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Note Maker - Google Keep Clone</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Google Sans', Arial, sans-serif;
+      background-color: #fafafa;
+      color: #202124;
+    }
+
+    .app-container {
+      display: flex;
+      height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      background-color: #f1f3f4;
+      border-right: 1px solid #dadce0;
+      padding: 20px 0;
+      overflow-y: auto;
+    }
+
+    .sidebar-header {
+      padding: 0 20px 20px;
+      border-bottom: 1px solid #dadce0;
+    }
+
+    .sidebar-header h1 {
+      font-size: 22px;
+      color: #5f6368;
+      font-weight: 400;
+    }
+
+    .sidebar-menu {
+      padding: 20px 0;
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 20px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      color: #5f6368;
+    }
+
+    .menu-item:hover {
+      background-color: #e8eaed;
+    }
+
+    .menu-item.active {
+      background-color: #feefc3;
+      color: #202124;
+    }
+
+    .menu-item i {
+      margin-right: 12px;
+      width: 20px;
+    }
+
+    .menu-item span {
+      font-size: 14px;
+    }
+
+    .tags-section {
+      padding: 20px 0;
+      border-top: 1px solid #dadce0;
+    }
+
+    .tags-section h3 {
+      padding: 0 20px 10px;
+      font-size: 12px;
+      color: #5f6368;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .tag-item {
+      display: flex;
+      align-items: center;
+      padding: 8px 20px;
+      cursor: pointer;
+      color: #5f6368;
+      font-size: 14px;
+    }
+
+    .tag-item:hover {
+      background-color: #e8eaed;
+    }
+
+    .tag-item i {
+      margin-right: 12px;
+      color: #5f6368;
+    }
+
+    /* Main Content */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      background-color: white;
+      border-bottom: 1px solid #dadce0;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .search-container {
+      flex: 1;
+      max-width: 600px;
+      position: relative;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 12px 16px 12px 48px;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      font-size: 16px;
+      background-color: #f1f3f4;
+      transition: background-color 0.2s;
+    }
+
+    .search-input:focus {
+      outline: none;
+      background-color: white;
+      border-color: #1a73e8;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #5f6368;
+    }
+
+    .create-note-btn {
+      background-color: #1a73e8;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+
+    .create-note-btn:hover {
+      background-color: #1557b0;
+    }
+
+    /* Notes Grid */
+    .notes-container {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .notes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .note-card {
+      background-color: white;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      padding: 16px;
+      cursor: pointer;
+      transition: box-shadow 0.2s, transform 0.2s;
+      position: relative;
+    }
+
+    .note-card:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      transform: translateY(-2px);
+    }
+
+    .note-title {
+      font-size: 16px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: #202124;
+    }
+
+    .note-content {
+      font-size: 14px;
+      color: #5f6368;
+      line-height: 1.5;
+      margin-bottom: 12px;
+      white-space: pre-wrap;
+    }
+
+    .note-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+
+    .note-tag {
+      background-color: #e8eaed;
+      color: #5f6368;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+
+    .note-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .note-card:hover .note-actions {
+      opacity: 1;
+    }
+
+    .note-action-btn {
+      background: none;
+      border: none;
+      padding: 8px;
+      cursor: pointer;
+      color: #5f6368;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+
+    .note-action-btn:hover {
+      background-color: #f1f3f4;
+    }
+
+    .note-date {
+      font-size: 12px;
+      color: #9aa0a6;
+    }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+    }
+
+    .modal-content {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: white;
+      padding: 24px;
+      border-radius: 8px;
+      min-width: 400px;
+      max-width: 600px;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: #5f6368;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: #202124;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: #1a73e8;
+    }
+
+    .form-textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .color-picker {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .color-option {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .color-option.selected {
+      border-color: #1a73e8;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .btn-primary {
+      background-color: #1a73e8;
+      color: white;
+    }
+
+    .btn-secondary {
+      background-color: #f1f3f4;
+      color: #5f6368;
+    }
+
+    .btn-danger {
+      background-color: #d93025;
+      color: white;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #5f6368;
+    }
+
+    .empty-state i {
+      font-size: 48px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .empty-state h3 {
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    .empty-state p {
+      font-size: 14px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 240px;
+      }
+      
+      .notes-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <h1>Note Maker</h1>
+      </div>
+      
+      <div class="sidebar-menu">
+        <div class="menu-item active" data-view="all">
+          <i class="fas fa-lightbulb"></i>
+          <span>Notes</span>
+        </div>
+        <div class="menu-item" data-view="archived">
+          <i class="fas fa-archive"></i>
+          <span>Archived</span>
+        </div>
+        <div class="menu-item" data-view="trash">
+          <i class="fas fa-trash"></i>
+          <span>Trash</span>
+        </div>
+      </div>
+
+      <div class="tags-section">
+        <h3>Labels</h3>
+        <div id="tagsList">
+          <!-- Tags will be populated here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="header">
+        <div class="search-container">
+          <i class="fas fa-search search-icon"></i>
+          <input type="text" class="search-input" placeholder="Search your notes..." id="searchInput">
+        </div>
+        <button class="create-note-btn" id="createNoteBtn">
+          <i class="fas fa-plus"></i> Create Note
+        </button>
+      </div>
+
+      <div class="notes-container">
+        <div class="notes-grid" id="notesGrid">
+          <!-- Notes will be populated here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Note Modal -->
+  <div class="modal" id="noteModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalTitle">Create Note</h3>
+        <button class="close-btn" id="closeModal">&times;</button>
+      </div>
+      
+      <form id="noteForm">
+        <div class="form-group">
+          <label class="form-label">Title</label>
+          <input type="text" class="form-input" id="noteTitle" required>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Content</label>
+          <textarea class="form-input form-textarea" id="noteContent" required></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Tags (comma separated, max 9)</label>
+          <input type="text" class="form-input" id="noteTags" placeholder="work, important, todo">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Background Color</label>
+          <div class="color-picker" id="colorPicker">
+            <div class="color-option selected" data-color="#ffffff" style="background-color: #ffffff;"></div>
+            <div class="color-option" data-color="#f28b82" style="background-color: #f28b82;"></div>
+            <div class="color-option" data-color="#fbbc04" style="background-color: #fbbc04;"></div>
+            <div class="color-option" data-color="#fff475" style="background-color: #fff475;"></div>
+            <div class="color-option" data-color="#ccff90" style="background-color: #ccff90;"></div>
+            <div class="color-option" data-color="#a7ffeb" style="background-color: #a7ffeb;"></div>
+            <div class="color-option" data-color="#cbf0f8" style="background-color: #cbf0f8;"></div>
+            <div class="color-option" data-color="#aecbfa" style="background-color: #aecbfa;"></div>
+            <div class="color-option" data-color="#d7aefb" style="background-color: #d7aefb;"></div>
+            <div class="color-option" data-color="#fdcfe8" style="background-color: #fdcfe8;"></div>
+            <div class="color-option" data-color="#e6c9a8" style="background-color: #e6c9a8;"></div>
+            <div class="color-option" data-color="#e8eaed" style="background-color: #e8eaed;"></div>
+          </div>
+        </div>
+        
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveBtn">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html> 
