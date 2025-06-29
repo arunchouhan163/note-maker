@@ -1,0 +1,29 @@
+import { Prop, getModelForClass, modelOptions } from '@typegoose/typegoose';
+import { Schema } from 'mongoose';
+
+@modelOptions({ schemaOptions: { timestamps: true } })
+export class Note {
+  @Prop({ required: true })
+  title!: string;
+
+  @Prop({ required: true })
+  content!: string;
+
+  @Prop({ type: [String], default: [], maxlength: 9 })
+  tags!: string[];
+
+  @Prop({ default: '#ffffff' })
+  backgroundColor!: string;
+
+  @Prop({ default: false })
+  isArchived!: boolean;
+
+  @Prop({ default: false })
+  isTrashed!: boolean;
+
+  @Prop({ type: Date })
+  trashedAt?: Date;
+}
+
+export const NoteModel = getModelForClass(Note);
+export const NoteSchema = NoteModel.schema as Schema; 
