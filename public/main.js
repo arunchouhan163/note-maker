@@ -336,7 +336,7 @@ class NoteApp {
           <div>
             ${!isTrashed ? `
               <button class="note-action-btn archive-btn" title="${note.isArchived ? 'Unarchive' : 'Archive'}">
-                <i class="fas fa-${note.isArchived ? 'unarchive' : 'archive'}"></i>
+                <i class="fas fa-${note.isArchived ? 'box-open' : 'archive'}"></i>
               </button>
               <button class="note-action-btn delete-btn" title="Delete">
                 <i class="fas fa-trash"></i>
