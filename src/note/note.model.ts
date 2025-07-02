@@ -6,8 +6,11 @@ export class Note {
   @Prop({ required: true })
   title!: string;
 
-  @Prop({ required: true })
-  content!: string;
+  @Prop({ type: [String], default: [] })
+  items!: string[];
+
+  @Prop({ type: [Number], default: [] })
+  completedItems!: number[];
 
   @Prop({ type: [String], default: [], maxlength: 9 })
   tags!: string[];

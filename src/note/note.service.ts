@@ -58,7 +58,7 @@ export class NoteService {
       isTrashed: false,
       $or: [
         { title: { $regex: query, $options: 'i' } },
-        { content: { $regex: query, $options: 'i' } },
+        { items: { $elemMatch: { $regex: query, $options: 'i' } } },
         { tags: { $in: [new RegExp(query, 'i')] } }
       ]
     }).sort({ updatedAt: -1 }).exec();

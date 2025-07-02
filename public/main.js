@@ -7,6 +7,10 @@ class NoteApp {
     this.selectedColor = '#ffffff';
     this.editingNote = null;
     this.searchTimeout = null;
+    this.todoItems = [];
+    this.completedItems = new Set();
+    this.autosaveTimeout = null;
+    this.isAutoSaving = false;
     
     this.initializeElements();
     this.bindEvents();
@@ -22,12 +26,13 @@ class NoteApp {
     this.noteForm = document.getElementById('noteForm');
     this.modalTitle = document.getElementById('modalTitle');
     this.noteTitle = document.getElementById('noteTitle');
-    this.noteContent = document.getElementById('noteContent');
+    this.newTodoItem = document.getElementById('newTodoItem');
+    this.addTodoBtn = document.getElementById('addTodoBtn');
+    this.todoItemsList = document.getElementById('todoItemsList');
     this.noteTags = document.getElementById('noteTags');
     this.colorPicker = document.getElementById('colorPicker');
-    this.closeModalBtn = document.getElementById('closeModal');
-    this.cancelBtn = document.getElementById('cancelBtn');
-    this.saveBtn = document.getElementById('saveBtn');
+    this.closeModalFooterBtn = document.getElementById('closeModalFooter');
+    this.autosaveStatus = document.getElementById('autosaveStatus');
     this.tagsList = document.getElementById('tagsList');
   }
 
@@ -42,14 +47,17 @@ class NoteApp {
 
     // Modal events
     this.createNoteBtn.addEventListener('click', () => this.openCreateModal());
-    this.closeModalBtn.addEventListener('click', () => this.closeModal());
-    this.cancelBtn.addEventListener('click', () => this.closeModal());
-    this.noteForm.addEventListener('submit', (e) => this.handleSaveNote(e));
+    this.closeModalFooterBtn.addEventListener('click', () => this.closeModal());
+    
+    // Autosave events
+    this.noteTitle.addEventListener('input', () => this.scheduleAutosave());
+    this.noteTags.addEventListener('input', () => this.scheduleAutosave());
 
     // Color picker
     this.colorPicker.addEventListener('click', (e) => {
       if (e.target.classList.contains('color-option')) {
         this.selectColor(e.target);
+        this.scheduleAutosave();
       }
     });
 
@@ -64,6 +72,15 @@ class NoteApp {
     this.noteModal.addEventListener('click', (e) => {
       if (e.target === this.noteModal) {
         this.closeModal();
+      }
+    });
+
+    // Todo item events
+    this.addTodoBtn.addEventListener('click', () => this.addTodoItem());
+    this.newTodoItem.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        this.addTodoItem();
       }
     });
   }
@@ -147,10 +164,37 @@ class NoteApp {
     const isTrashed = this.currentView === 'trash';
     const isArchived = this.currentView === 'archived';
     
+    // Separate items into pending and completed
+    const items = note.items || [];
+    const completedIndexes = new Set(note.completedItems || []);
+    const pendingItems = items.filter((item, index) => !completedIndexes.has(index));
+    const completedItems = items.filter((item, index) => completedIndexes.has(index));
+    
     return `
       <div class="note-card" style="background-color: ${note.backgroundColor || '#ffffff'}">
         <div class="note-title">${this.escapeHtml(note.title)}</div>
-        <div class="note-content">${this.escapeHtml(note.content)}</div>
+        
+        ${pendingItems.length > 0 ? `
+          <div class="note-section">
+            <div class="note-section-title">Pending</div>
+            <ul class="note-items">
+              ${pendingItems.map(item => `<li class="note-item">${this.escapeHtml(item)}</li>`).join('')}
+            </ul>
+          </div>
+        ` : ''}
+        
+        ${completedItems.length > 0 ? `
+          <div class="note-section">
+            <div class="note-section-title">Completed</div>
+            <ul class="note-items">
+              ${completedItems.map(item => `<li class="note-item completed">${this.escapeHtml(item)}</li>`).join('')}
+            </ul>
+          </div>
+        ` : ''}
+        
+        ${items.length === 0 ? `
+          <div class="note-content" style="color: #9aa0a6; font-style: italic;">No items yet</div>
+        ` : ''}
         
         ${note.tags && note.tags.length > 0 ? `
           <div class="note-tags">
@@ -250,6 +294,9 @@ class NoteApp {
     this.editingNote = null;
     this.modalTitle.textContent = 'Create Note';
     this.noteForm.reset();
+    this.todoItems = [];
+    this.completedItems = new Set();
+    this.renderTodoItems();
     this.selectColor(this.colorPicker.querySelector('[data-color="#ffffff"]'));
     this.noteModal.style.display = 'block';
   }
@@ -258,7 +305,9 @@ class NoteApp {
     this.editingNote = note;
     this.modalTitle.textContent = 'Edit Note';
     this.noteTitle.value = note.title;
-    this.noteContent.value = note.content;
+    this.todoItems = [...(note.items || [])];
+    this.completedItems = new Set(note.completedItems || []);
+    this.renderTodoItems();
     this.noteTags.value = note.tags ? note.tags.join(', ') : '';
     this.selectColor(this.colorPicker.querySelector(`[data-color="${note.backgroundColor || '#ffffff'}"]`));
     this.noteModal.style.display = 'block';
@@ -267,6 +316,8 @@ class NoteApp {
   closeModal() {
     this.noteModal.style.display = 'none';
     this.editingNote = null;
+    this.todoItems = [];
+    this.completedItems = new Set();
     // Reset form to clear any error states
     this.noteForm.reset();
   }
@@ -279,36 +330,108 @@ class NoteApp {
     this.selectedColor = colorElement.dataset.color;
   }
 
-  async handleSaveNote(e) {
-    e.preventDefault();
-    
+  scheduleAutosave() {
+    if (!this.editingNote && !this.noteTitle.value.trim()) {
+      // Don't autosave new notes until there's at least a title
+      return;
+    }
+
+    // Clear existing timeout
+    if (this.autosaveTimeout) {
+      clearTimeout(this.autosaveTimeout);
+    }
+
+    // Show saving status
+    this.showAutosaveStatus('saving');
+
+    // Schedule autosave after 1 second of inactivity
+    this.autosaveTimeout = setTimeout(() => {
+      this.performAutosave();
+    }, 1000);
+  }
+
+  async performAutosave() {
+    if (this.isAutoSaving) return;
+
     const noteData = {
       title: this.noteTitle.value.trim(),
-      content: this.noteContent.value.trim(),
+      items: this.todoItems,
+      completedItems: Array.from(this.completedItems),
       tags: this.noteTags.value.split(',').map(tag => tag.trim()).filter(tag => tag),
       backgroundColor: this.selectedColor
     };
 
-    // Validate tags limit
-    if (noteData.tags.length > 9) {
-      alert('Maximum 9 tags allowed');
+    // Validate required fields
+    if (!noteData.title) {
+      this.showAutosaveStatus('error', 'Title is required');
       return;
     }
 
+    // Validate tags limit
+    if (noteData.tags.length > 9) {
+      this.showAutosaveStatus('error', 'Maximum 9 tags allowed');
+      return;
+    }
+
+    this.isAutoSaving = true;
+
     try {
       if (this.editingNote) {
-        await apiService.updateNote(this.editingNote._id, noteData);
+        const updatedNote = await apiService.updateNote(this.editingNote._id, noteData);
+        this.editingNote = updatedNote;
       } else {
-        await apiService.createNote(noteData);
+        const createdNote = await apiService.createNote(noteData);
+        this.editingNote = createdNote;
+        this.modalTitle.textContent = 'Edit Note';
       }
       
-      this.closeModal();
+      this.showAutosaveStatus('saved');
       this.loadNotes();
       this.loadTags();
     } catch (error) {
       console.error('Error saving note:', error);
-      // Don't close modal on error, let user try again
-      alert('Error saving note. Please try again.');
+      this.showAutosaveStatus('error', 'Failed to save');
+    } finally {
+      this.isAutoSaving = false;
+    }
+  }
+
+  showAutosaveStatus(status, message = null) {
+    const statusElement = this.autosaveStatus;
+    const icon = statusElement.querySelector('i');
+    const text = statusElement.querySelector('span');
+
+    // Remove all status classes
+    statusElement.classList.remove('saving', 'visible');
+    
+    switch (status) {
+      case 'saving':
+        statusElement.classList.add('visible', 'saving');
+        icon.className = 'fas fa-spinner';
+        text.textContent = 'Saving...';
+        break;
+      case 'saved':
+        statusElement.classList.add('visible');
+        icon.className = 'fas fa-check-circle';
+        text.textContent = 'Auto-saved';
+        // Hide after 3 seconds
+        setTimeout(() => {
+          statusElement.classList.remove('visible');
+        }, 3000);
+        break;
+      case 'error':
+        statusElement.classList.add('visible');
+        icon.className = 'fas fa-exclamation-triangle';
+        icon.style.color = '#ea4335';
+        text.textContent = message || 'Error saving';
+        text.style.color = '#ea4335';
+        // Hide after 5 seconds
+        setTimeout(() => {
+          statusElement.classList.remove('visible');
+          icon.style.color = '';
+          text.style.color = '';
+        }, 5000);
+        break;
     }
   }
 
@@ -392,9 +515,68 @@ class NoteApp {
     div.textContent = text;
     return div.innerHTML;
   }
+
+  addTodoItem() {
+    const itemText = this.newTodoItem.value.trim();
+    if (!itemText) return;
+
+    this.todoItems.push(itemText);
+    this.newTodoItem.value = '';
+    this.renderTodoItems();
+    this.scheduleAutosave();
+  }
+
+  removeTodoItem(index) {
+    // Adjust completed items indexes when removing an item
+    const newCompletedItems = new Set();
+    this.completedItems.forEach(completedIndex => {
+      if (completedIndex < index) {
+        newCompletedItems.add(completedIndex);
+      } else if (completedIndex > index) {
+        newCompletedItems.add(completedIndex - 1);
+      }
+      // Skip the removed item (completedIndex === index)
+    });
+    
+    this.completedItems = newCompletedItems;
+    this.todoItems.splice(index, 1);
+    this.renderTodoItems();
+    this.scheduleAutosave();
+  }
+
+  toggleTodoItem(index) {
+    if (this.completedItems.has(index)) {
+      this.completedItems.delete(index);
+    } else {
+      this.completedItems.add(index);
+    }
+    this.renderTodoItems();
+    this.scheduleAutosave();
+  }
+
+  renderTodoItems() {
+    if (this.todoItems.length === 0) {
+      this.todoItemsList.innerHTML = '<div style="color: #9aa0a6; font-size: 14px; padding: 8px 0;">No items added yet</div>';
+      return;
+    }
+
+    this.todoItemsList.innerHTML = this.todoItems.map((item, index) => {
+      const isCompleted = this.completedItems.has(index);
+      return `
+        <div class="todo-item">
+          <input type="checkbox" class="todo-checkbox" ${isCompleted ? 'checked' : ''} 
+                 onchange="window.noteApp.toggleTodoItem(${index})">
+          <span class="todo-text ${isCompleted ? 'completed' : ''}">${this.escapeHtml(item)}</span>
+          <button type="button" class="todo-remove-btn" onclick="window.noteApp.removeTodoItem(${index})">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      `;
+    }).join('');
+  }
 }
 
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-  new NoteApp();
+  window.noteApp = new NoteApp();
 }); 
