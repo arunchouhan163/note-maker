@@ -41,14 +41,18 @@
     }
 
     .sidebar-header {
-      padding: 0 20px 20px;
+      padding: 20px 20px 20px;
       border-bottom: 1px solid #dadce0;
+      display: flex;
+      align-items: center;
+      min-height: 68px;
     }
 
     .sidebar-header h1 {
       font-size: 22px;
       color: #5f6368;
       font-weight: 400;
+      margin: 0;
     }
 
     .sidebar-menu {
@@ -139,6 +143,7 @@
       display: flex;
       align-items: center;
       gap: 20px;
+      position: relative;
     }
 
     .search-container {
@@ -562,15 +567,12 @@
       gap: 16px;
     }
 
-    /* User Section - Top Right */
+    /* User Section - In Header */
     .user-section-top-right {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      z-index: 1000;
       display: flex;
       align-items: center;
       gap: 12px;
+      margin-left: auto;
     }
 
     .user-info {
@@ -1060,28 +1062,27 @@
 
     <!-- Main Content -->
     <div class="main-content">
-      <!-- User Section - Top Right -->
-      <div class="user-section-top-right" id="userSection">
-        <div class="user-info" id="userInfo" style="display: none;">
-          <div class="user-avatar" id="userAvatar">
-            <i class="fas fa-user"></i>
-          </div>
-          <span class="user-email" id="userEmail"></span>
-        </div>
-        <button class="sign-in-btn" id="signInBtn" style="display: block;">
-          <i class="fas fa-sign-in-alt"></i> Sign In
-        </button>
-      </div>
-
       <div class="header">
         <div class="search-container">
           <i class="fas fa-search search-icon"></i>
           <input type="text" class="search-input" placeholder="Search your notes..." id="searchInput">
         </div>
         <div class="header-actions">
-        <button class="create-note-btn" id="createNoteBtn">
-          <i class="fas fa-plus"></i> Create Note
-        </button>
+          <button class="create-note-btn" id="createNoteBtn">
+            <i class="fas fa-plus"></i> Create Note
+          </button>
+        </div>
+        <!-- User Section -->
+        <div class="user-section-top-right" id="userSection">
+          <div class="user-info" id="userInfo" style="display: none;">
+            <div class="user-avatar" id="userAvatar">
+              <i class="fas fa-user"></i>
+            </div>
+            <span class="user-email" id="userEmail"></span>
+          </div>
+          <button class="sign-in-btn" id="signInBtn" style="display: block;">
+            <i class="fas fa-sign-in-alt"></i> Sign In
+          </button>
         </div>
       </div>
 

@@ -12,6 +12,8 @@ class NoteApp {
     this.autosaveTimeout = null;
     this.isAutoSaving = false;
     this.currentUser = null;
+    this.lastSyncTime = 0;
+    this.syncCooldown = 2000; // 2 second cooldown between syncs
     
     this.initializeElements();
     this.bindEvents();
@@ -556,6 +558,7 @@ class NoteApp {
     try {
       await apiService.updateNote(note._id, { isArchived: !note.isArchived });
       this.loadNotes();
+      this.loadDueDates(); // Refresh reminder counts
     } catch (error) {
       console.error('Error toggling archive:', error);
     }
@@ -567,6 +570,7 @@ class NoteApp {
         try {
           await apiService.permanentlyDeleteNote(note._id);
           this.loadNotes();
+          this.loadDueDates(); // Refresh reminder counts
         } catch (error) {
           console.error('Error permanently deleting note:', error);
         }
@@ -576,6 +580,7 @@ class NoteApp {
         try {
           await apiService.deleteNote(note._id);
           this.loadNotes();
+          this.loadDueDates(); // Refresh reminder counts
         } catch (error) {
           console.error('Error deleting note:', error);
         }
@@ -587,6 +592,7 @@ class NoteApp {
     try {
       await apiService.restoreFromTrash(note._id);
       this.loadNotes();
+      this.loadDueDates(); // Refresh reminder counts
     } catch (error) {
       console.error('Error restoring note:', error);
     }
@@ -929,12 +935,19 @@ class NoteApp {
     }
   }
 
-  // Window focus handler for authentication check
+  // Window focus handler for authentication check and data sync
   async handleWindowFocus() {
-    console.log('Window focus event triggered');
+    console.log('🔄 Tab focus detected...');
+    
+    // Rate limiting to prevent excessive API calls
+    const now = Date.now();
+    if (now - this.lastSyncTime < this.syncCooldown) {
+      console.log('⏳ Sync cooldown active, skipping refresh');
+      return;
+    }
+    
     console.log('Is authenticated:', apiService.isAuthenticated());
     
-    // Only check if we think we're authenticated
     if (apiService.isAuthenticated()) {
       // Check if token is expiring soon
       if (apiService.isTokenExpiringSoon()) {
@@ -944,16 +957,21 @@ class NoteApp {
       }
       
       try {
-        console.log('Calling profile API to verify authentication...');
+        console.log('Verifying authentication and syncing data...');
         const profile = await apiService.getProfile();
-        console.log('Profile API succeeded - user is still authenticated');
-        // Profile API succeeded, user is still authenticated
+        console.log('✅ Authentication verified');
+        
+        // Update user info if needed
         if (!this.currentUser && profile) {
           this.currentUser = profile;
           this.updateUserInterface();
         }
+        
+        // Sync data between tabs
+        await this.syncAllData();
+        
       } catch (error) {
-        console.log('Authentication expired, showing sign-in modal');
+        console.log('❌ Authentication expired, showing sign-in modal');
         console.error('Profile API error:', error);
         // API returned unauthenticated, show sign-in modal
         // Note: The API service automatically handles logout on 401, so we just need to show the modal
@@ -962,7 +980,24 @@ class NoteApp {
         }
       }
     } else {
-      console.log('User not authenticated, skipping profile check');
+      console.log('👤 User not authenticated, skipping data sync');
+    }
+  }
+
+  // Sync all data between tabs
+  async syncAllData() {
+    console.log('🔄 Syncing all data...');
+    this.lastSyncTime = Date.now();
+    
+    try {
+      await Promise.all([
+        this.loadNotes(),
+        this.loadTags(), 
+        this.loadDueDates()
+      ]);
+      console.log('✅ All data synced successfully');
+    } catch (error) {
+      console.error('❌ Error syncing data:', error);
     }
   }
 
@@ -970,6 +1005,16 @@ class NoteApp {
   testAuthCheck() {
     console.log('Manual auth check triggered');
     this.handleWindowFocus();
+  }
+
+  // Manual sync trigger (for debugging)
+  async manualSync() {
+    console.log('Manual sync triggered');
+    if (apiService.isAuthenticated()) {
+      await this.syncAllData();
+    } else {
+      console.log('Not authenticated - cannot sync');
+    }
   }
 
   // Get token information for debugging
@@ -1041,6 +1086,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } else {
       console.log('ApiService not available');    
+    }
+  };
+  
+  window.syncData = async () => {
+    if (window.noteApp) {
+      await window.noteApp.manualSync();
+    } else {
+      console.log('NoteApp not initialized yet');
     }
   };
 }); 
