@@ -14,6 +14,7 @@ class NoteApp {
     this.currentUser = null;
     this.lastSyncTime = 0;
     this.syncCooldown = 2000; // 2 second cooldown between syncs
+    this.pendingAction = null; // Track pending actions after sign-in
     
     this.initializeElements();
     this.bindEvents();
@@ -80,7 +81,7 @@ class NoteApp {
 
     // Modal events
     this.createNoteBtn.addEventListener('click', () => this.openCreateModal());
-    this.closeModalFooterBtn.addEventListener('click', () => this.closeModal());
+    this.closeModalFooterBtn.addEventListener('click', () => this.closeModalWithSave());
     
     // Autosave events
     this.noteTitle.addEventListener('input', () => this.scheduleAutosave());
@@ -108,7 +109,7 @@ class NoteApp {
     // Close modal on outside click
     this.noteModal.addEventListener('click', (e) => {
       if (e.target === this.noteModal) {
-        this.closeModal();
+        this.closeModalWithSave();
       }
     });
 
@@ -153,6 +154,11 @@ class NoteApp {
           // Remove blur effect for auth modals
           if (modal === this.signInModal || modal === this.signUpModal) {
             this.removeBackgroundBlur();
+            // Clear pending action if auth modal is closed without authentication
+            if (this.pendingAction) {
+              console.log('Auth modal closed by outside click - clearing pending action');
+              this.pendingAction = null;
+            }
           }
         }
       });
@@ -412,6 +418,16 @@ class NoteApp {
   }
 
   openCreateModal() {
+    // Check if user is authenticated first
+    if (!apiService.isAuthenticated()) {
+      console.log('User not authenticated - setting pending action and showing sign-in modal');
+      this.pendingAction = { type: 'create' };
+      this.openSignInModal();
+      return;
+    }
+
+    // User is authenticated - proceed with create note modal
+    console.log('User authenticated - opening create note modal');
     this.editingNote = null;
     this.modalTitle.textContent = 'Create Note';
     this.noteForm.reset();
@@ -424,6 +440,16 @@ class NoteApp {
   }
 
   openEditModal(note) {
+    // Check if user is authenticated first
+    if (!apiService.isAuthenticated()) {
+      console.log('User not authenticated - setting pending action and showing sign-in modal');
+      this.pendingAction = { type: 'edit', note: note };
+      this.openSignInModal();
+      return;
+    }
+
+    // User is authenticated - proceed with edit note modal
+    console.log('User authenticated - opening edit note modal');
     this.editingNote = note;
     this.modalTitle.textContent = 'Edit Note';
     this.noteTitle.value = note.title;
@@ -435,6 +461,29 @@ class NoteApp {
     this.updateDueDateStatus();
     this.selectColor(this.colorPicker.querySelector(`[data-color="${note.backgroundColor || '#ffffff'}"]`));
     this.noteModal.style.display = 'block';
+  }
+
+  async closeModalWithSave() {
+    // Clear any pending autosave timeout
+    if (this.autosaveTimeout) {
+      clearTimeout(this.autosaveTimeout);
+      this.autosaveTimeout = null;
+    }
+
+    // Check if there are any changes to save
+    const hasChanges = this.noteTitle.value.trim() || 
+                      this.todoItems.length > 0 || 
+                      this.noteTags.value.trim() ||
+                      this.noteDueDate.value;
+
+    // If there are changes, trigger autosave and wait for it to complete
+    if (hasChanges && !this.isAutoSaving) {
+      console.log('Triggering final autosave before closing modal');
+      await this.performAutosave();
+    }
+
+    // Now close the modal
+    this.closeModal();
   }
 
   closeModal() {
@@ -855,11 +904,21 @@ class NoteApp {
   closeSignInModal() {
     this.signInModal.style.display = 'none';
     this.removeBackgroundBlur();
+    // Clear pending action if modal is closed without authentication
+    if (this.pendingAction) {
+      console.log('Sign-in modal closed - clearing pending action');
+      this.pendingAction = null;
+    }
   }
 
   closeSignUpModal() {
     this.signUpModal.style.display = 'none';
     this.removeBackgroundBlur();
+    // Clear pending action if modal is closed without authentication
+    if (this.pendingAction) {
+      console.log('Sign-up modal closed - clearing pending action');
+      this.pendingAction = null;
+    }
   }
 
   closeProfileModal() {
@@ -881,6 +940,9 @@ class NoteApp {
         this.loadNotes();
         this.loadTags();
         this.loadDueDates();
+        
+        // Execute pending action if any
+        this.executePendingAction();
       } else {
         throw new Error('Invalid response from server');
       }
@@ -906,6 +968,9 @@ class NoteApp {
         this.loadNotes();
         this.loadTags();
         this.loadDueDates();
+        
+        // Execute pending action if any
+        this.executePendingAction();
       } else {
         throw new Error('Invalid response from server');
       }
@@ -916,11 +981,45 @@ class NoteApp {
   }
 
   handleLogout() {
+    console.log('Logging out - clearing all user data');
     apiService.logout();
     this.currentUser = null;
     this.notes = [];
+    
+    // Clear all user-specific data
+    this.clearAllUserData();
+    
     this.showSignInState();
     this.closeProfileModal();
+  }
+
+  // Clear all user-specific data from UI
+  clearAllUserData() {
+    console.log('Clearing all user data from UI');
+    
+    // Clear notes grid
+    this.notesGrid.innerHTML = '';
+    
+    // Clear tags list
+    this.tagsList.innerHTML = '<div style="padding: 0 20px; color: #9aa0a6; font-size: 12px;">No tags yet</div>';
+    
+    // Clear reminders (overdue and upcoming)
+    this.overdueCount.textContent = '0';
+    this.upcomingCount.textContent = '0';
+    this.overdueList.innerHTML = '<div style="padding: 8px; color: #9aa0a6; font-size: 11px;">No overdue notes</div>';
+    this.upcomingList.innerHTML = '<div style="padding: 8px; color: #9aa0a6; font-size: 11px;">No upcoming notes</div>';
+    
+    // Reset search
+    this.searchInput.value = '';
+    
+    // Reset current view to default
+    this.currentView = 'all';
+    this.updateActiveView('all');
+    
+    // Clear any pending actions
+    this.pendingAction = null;
+    
+    console.log('✅ All user data cleared');
   }
 
   showAuthError(type, message) {
@@ -981,8 +1080,12 @@ class NoteApp {
       } catch (error) {
         console.log('❌ Authentication expired, showing sign-in modal');
         console.error('Profile API error:', error);
-        // API returned unauthenticated, show sign-in modal
-        // Note: The API service automatically handles logout on 401, so we just need to show the modal
+        // API returned unauthenticated, clear data and show sign-in modal
+        // Note: The API service automatically handles logout on 401
+        this.currentUser = null;
+        this.clearAllUserData();
+        this.showSignInState();
+        
         if (!this.signInModal || this.signInModal.style.display === 'none') {
           this.openSignInModal();
         }
@@ -1092,6 +1195,34 @@ class NoteApp {
     } else {
       icon.className = 'fas fa-bars';
     }
+  }
+
+  // Execute pending action after successful authentication
+  executePendingAction() {
+    if (!this.pendingAction) {
+      return;
+    }
+
+    console.log('Executing pending action:', this.pendingAction);
+    
+    const action = this.pendingAction;
+    this.pendingAction = null; // Clear pending action
+    
+    // Small delay to allow modals to close properly
+    setTimeout(() => {
+      switch (action.type) {
+        case 'create':
+          this.openCreateModal();
+          break;
+        case 'edit':
+          if (action.note) {
+            this.openEditModal(action.note);
+          }
+          break;
+        default:
+          console.log('Unknown pending action type:', action.type);
+      }
+    }, 100);
   }
 }
 
