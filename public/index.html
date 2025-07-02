@@ -496,6 +496,46 @@
       border: 1px solid #e8eaed;
     }
 
+    /* Due Date Status in Modal */
+    .due-date-status {
+      margin-top: 8px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .due-date-status.overdue {
+      background-color: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+    }
+
+    .due-date-status.upcoming {
+      background-color: #eff6ff;
+      color: #2563eb;
+      border: 1px solid #bfdbfe;
+    }
+
+    .due-date-status.neutral {
+      background-color: #f9fafb;
+      color: #6b7280;
+      border: 1px solid #e5e7eb;
+    }
+
+    .due-date-status.due-today {
+      background-color: #fef3c7;
+      color: #d97706;
+      border: 1px solid #fde68a;
+    }
+
+    .due-date-status i {
+      font-size: 12px;
+    }
+
     .modal-header {
       text-align: center;
       padding: 20px 0;
@@ -847,7 +887,10 @@
           
           <div class="form-group">
             <label class="form-label">Due Date (optional)</label>
-            <input type="datetime-local" class="form-input" id="noteDueDate">
+            <input type="date" class="form-input" id="noteDueDate">
+            <div class="due-date-status" id="dueDateStatus" style="display: none;">
+              <!-- Status will be shown here when editing -->
+            </div>
           </div>
           
           <div class="form-group">

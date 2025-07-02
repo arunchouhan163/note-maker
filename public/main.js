@@ -32,6 +32,7 @@ class NoteApp {
     this.todoItemsList = document.getElementById('todoItemsList');
     this.noteTags = document.getElementById('noteTags');
     this.noteDueDate = document.getElementById('noteDueDate');
+    this.dueDateStatus = document.getElementById('dueDateStatus');
     this.colorPicker = document.getElementById('colorPicker');
     this.closeModalFooterBtn = document.getElementById('closeModalFooter');
     this.autosaveStatus = document.getElementById('autosaveStatus');
@@ -58,7 +59,10 @@ class NoteApp {
     // Autosave events
     this.noteTitle.addEventListener('input', () => this.scheduleAutosave());
     this.noteTags.addEventListener('input', () => this.scheduleAutosave());
-    this.noteDueDate.addEventListener('change', () => this.scheduleAutosave());
+    this.noteDueDate.addEventListener('change', () => {
+      this.updateDueDateStatus();
+      this.scheduleAutosave();
+    });
 
     // Color picker
     this.colorPicker.addEventListener('click', (e) => {
@@ -329,6 +333,7 @@ class NoteApp {
     this.todoItems = [];
     this.completedItems = new Set();
     this.renderTodoItems();
+    this.dueDateStatus.style.display = 'none';
     this.selectColor(this.colorPicker.querySelector('[data-color="#ffffff"]'));
     this.noteModal.style.display = 'block';
   }
@@ -342,6 +347,7 @@ class NoteApp {
     this.renderTodoItems();
     this.noteTags.value = note.tags ? note.tags.join(', ') : '';
     this.noteDueDate.value = note.dueDate ? this.formatDateForInput(note.dueDate) : '';
+    this.updateDueDateStatus();
     this.selectColor(this.colorPicker.querySelector(`[data-color="${note.backgroundColor || '#ffffff'}"]`));
     this.noteModal.style.display = 'block';
   }
@@ -351,6 +357,7 @@ class NoteApp {
     this.editingNote = null;
     this.todoItems = [];
     this.completedItems = new Set();
+    this.dueDateStatus.style.display = 'none';
     // Reset form to clear any error states
     this.noteForm.reset();
   }
@@ -392,7 +399,7 @@ class NoteApp {
       completedItems: Array.from(this.completedItems),
       tags: this.noteTags.value.split(',').map(tag => tag.trim()).filter(tag => tag),
       backgroundColor: this.selectedColor,
-      dueDate: this.noteDueDate.value ? new Date(this.noteDueDate.value).toISOString() : null
+      dueDate: this.noteDueDate.value ? new Date(this.noteDueDate.value + 'T23:59:59').toISOString() : null
     };
 
     // Validate required fields
@@ -615,21 +622,32 @@ class NoteApp {
 
     const due = new Date(dueDate);
     const now = new Date();
-    const diffTime = due.getTime() - now.getTime();
+    
+    // Reset time to start of day for accurate comparison
+    const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    const diffTime = dueDay.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffTime < 0) {
+    if (diffDays === 0) {
+      return {
+        class: 'due-today',
+        icon: 'calendar-day',
+        text: 'Due today'
+      };
+    } else if (diffDays < 0) {
       const overdueDays = Math.abs(diffDays);
       return {
         class: 'overdue',
         icon: 'exclamation-triangle',
-        text: overdueDays === 0 ? 'Due today' : `${overdueDays} day${overdueDays > 1 ? 's' : ''} overdue`
+        text: `${overdueDays} day${overdueDays > 1 ? 's' : ''} overdue`
       };
     } else if (diffDays <= 7) {
       return {
         class: 'upcoming',
         icon: 'clock',
-        text: diffDays === 0 ? 'Due today' : `Due in ${diffDays} day${diffDays > 1 ? 's' : ''}`
+        text: `Due in ${diffDays} day${diffDays > 1 ? 's' : ''}`
       };
     } else {
       return {
@@ -642,7 +660,7 @@ class NoteApp {
 
   formatDateForInput(dateString) {
     const date = new Date(dateString);
-    return date.toISOString().slice(0, 16);
+    return date.toISOString().slice(0, 10);
   }
 
   renderDueDates(overdue, upcoming) {
@@ -669,6 +687,27 @@ class NoteApp {
           <div class="due-note-date">${this.getDueDateInfo(note.dueDate).text}</div>
         </div>
       `).join('');
+    }
+  }
+
+  updateDueDateStatus() {
+    if (!this.noteDueDate.value) {
+      this.dueDateStatus.style.display = 'none';
+      return;
+    }
+
+    const dateString = this.noteDueDate.value + 'T23:59:59';
+    const dueDateInfo = this.getDueDateInfo(dateString);
+    
+    if (dueDateInfo) {
+      this.dueDateStatus.style.display = 'flex';
+      this.dueDateStatus.className = `due-date-status ${dueDateInfo.class}`;
+      this.dueDateStatus.innerHTML = `
+        <i class="fas fa-${dueDateInfo.icon}"></i>
+        <span>${dueDateInfo.text}</span>
+      `;
+    } else {
+      this.dueDateStatus.style.display = 'none';
     }
   }
 }
