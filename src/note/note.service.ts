@@ -55,6 +55,45 @@ export class NoteService {
     }).sort({ trashedAt: -1 }).exec();
   }
 
+  async cleanupOldTrashedNotes(): Promise<{ deletedCount: number }> {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    console.log(`🗑️  Cleaning up notes trashed before: ${thirtyDaysAgo.toISOString()}`);
+    
+    const result = await NoteModel.deleteMany({
+      isTrashed: true,
+      trashedAt: { $lt: thirtyDaysAgo }
+    }).exec();
+    
+    console.log(`🗑️  Permanently deleted ${result.deletedCount} old trashed notes`);
+    
+    return { deletedCount: result.deletedCount };
+  }
+
+  async getTrashStats(): Promise<{ total: number; upcoming: number; expired: number }> {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const [total, recent, expired] = await Promise.all([
+      NoteModel.countDocuments({ isTrashed: true }),
+      NoteModel.countDocuments({ 
+        isTrashed: true, 
+        trashedAt: { $gte: thirtyDaysAgo }
+      }),
+      NoteModel.countDocuments({ 
+        isTrashed: true, 
+        trashedAt: { $lt: thirtyDaysAgo }
+      })
+    ]);
+    
+    return {
+      total,
+      upcoming: recent,
+      expired
+    };
+  }
+
   async searchNotes(query: string, userId: string): Promise<Note[]> {
     return NoteModel.find({
       userId,

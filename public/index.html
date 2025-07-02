@@ -76,6 +76,17 @@
       font-size: 14px;
     }
 
+    .trash-info {
+      padding: 4px 20px 8px 52px;
+      margin-top: -8px;
+    }
+
+    .trash-info small {
+      color: #9aa0a6;
+      font-size: 11px;
+      font-style: italic;
+    }
+
     .tags-section {
       padding: 20px 0;
       border-top: 1px solid #dadce0;
@@ -650,6 +661,12 @@
       gap: 12px;
     }
 
+    .auth-actions .btn {
+      min-width: 100px;
+      padding: 12px 20px;
+      text-align: center;
+    }
+
     .form-hint {
       font-size: 12px;
       color: #5f6368;
@@ -995,6 +1012,9 @@
           <i class="fas fa-trash"></i>
           <span>Trash</span>
         </div>
+        <div class="trash-info">
+          <small>Deleted notes in the last 30 days</small>
+        </div>
       </div>
 
       <div class="tags-section">
@@ -1053,9 +1073,9 @@
           <input type="text" class="search-input" placeholder="Search your notes..." id="searchInput">
         </div>
         <div class="header-actions">
-          <button class="create-note-btn" id="createNoteBtn">
-            <i class="fas fa-plus"></i> Create Note
-          </button>
+        <button class="create-note-btn" id="createNoteBtn">
+          <i class="fas fa-plus"></i> Create Note
+        </button>
         </div>
       </div>
 
@@ -1075,13 +1095,13 @@
       </div>
       
       <div class="modal-body">
-        <form id="noteForm">
-          <div class="form-group">
-            <label class="form-label">Title</label>
-            <input type="text" class="form-input" id="noteTitle" required>
-          </div>
-          
-          <div class="form-group">
+      <form id="noteForm">
+        <div class="form-group">
+          <label class="form-label">Title</label>
+          <input type="text" class="form-input" id="noteTitle" required>
+        </div>
+        
+        <div class="form-group">
             <label class="form-label">To-Do Items</label>
             <div id="todoItemsContainer">
               <div class="todo-item-input">
@@ -1094,12 +1114,12 @@
                 <!-- To-do items will be populated here -->
               </div>
             </div>
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label">Tags (comma separated, max 9)</label>
-            <input type="text" class="form-input" id="noteTags" placeholder="work, important, todo">
-          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Tags (comma separated, max 9)</label>
+          <input type="text" class="form-input" id="noteTags" placeholder="work, important, todo">
+        </div>
           
           <div class="form-group">
             <label class="form-label">Due Date (optional)</label>
@@ -1108,27 +1128,27 @@
               <!-- Status will be shown here when editing -->
             </div>
           </div>
-          
-          <div class="form-group">
-            <label class="form-label">Background Color</label>
-            <div class="color-picker" id="colorPicker">
-              <div class="color-option selected" data-color="#ffffff" style="background-color: #ffffff;"></div>
-              <div class="color-option" data-color="#f28b82" style="background-color: #f28b82;"></div>
-              <div class="color-option" data-color="#fbbc04" style="background-color: #fbbc04;"></div>
-              <div class="color-option" data-color="#fff475" style="background-color: #fff475;"></div>
-              <div class="color-option" data-color="#ccff90" style="background-color: #ccff90;"></div>
-              <div class="color-option" data-color="#a7ffeb" style="background-color: #a7ffeb;"></div>
-              <div class="color-option" data-color="#cbf0f8" style="background-color: #cbf0f8;"></div>
-              <div class="color-option" data-color="#aecbfa" style="background-color: #aecbfa;"></div>
-              <div class="color-option" data-color="#d7aefb" style="background-color: #d7aefb;"></div>
-              <div class="color-option" data-color="#fdcfe8" style="background-color: #fdcfe8;"></div>
-              <div class="color-option" data-color="#e6c9a8" style="background-color: #e6c9a8;"></div>
-              <div class="color-option" data-color="#e8eaed" style="background-color: #e8eaed;"></div>
-            </div>
+        
+        <div class="form-group">
+          <label class="form-label">Background Color</label>
+          <div class="color-picker" id="colorPicker">
+            <div class="color-option selected" data-color="#ffffff" style="background-color: #ffffff;"></div>
+            <div class="color-option" data-color="#f28b82" style="background-color: #f28b82;"></div>
+            <div class="color-option" data-color="#fbbc04" style="background-color: #fbbc04;"></div>
+            <div class="color-option" data-color="#fff475" style="background-color: #fff475;"></div>
+            <div class="color-option" data-color="#ccff90" style="background-color: #ccff90;"></div>
+            <div class="color-option" data-color="#a7ffeb" style="background-color: #a7ffeb;"></div>
+            <div class="color-option" data-color="#cbf0f8" style="background-color: #cbf0f8;"></div>
+            <div class="color-option" data-color="#aecbfa" style="background-color: #aecbfa;"></div>
+            <div class="color-option" data-color="#d7aefb" style="background-color: #d7aefb;"></div>
+            <div class="color-option" data-color="#fdcfe8" style="background-color: #fdcfe8;"></div>
+            <div class="color-option" data-color="#e6c9a8" style="background-color: #e6c9a8;"></div>
+            <div class="color-option" data-color="#e8eaed" style="background-color: #e8eaed;"></div>
+          </div>
           </div>
         </form>
-      </div>
-      
+        </div>
+        
       <div class="modal-footer">
         <div class="autosave-status" id="autosaveStatus">
           <i class="fas fa-check-circle" style="color: #34a853;"></i>
@@ -1164,7 +1184,7 @@
           </div>
           
           <div class="auth-error" id="signInError" style="display: none;"></div>
-        </form>
+      </form>
       </div>
       
       <div class="modal-footer">

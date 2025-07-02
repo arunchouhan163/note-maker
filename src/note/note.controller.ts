@@ -2,13 +2,17 @@ import { Controller, Get, Post, Put, Delete, Body, Param, Query, Logger, UseGuar
 import { NoteService } from './note.service';
 import { Note } from './note.model';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CleanupService } from '../tasks/cleanup.service';
 
 @Controller('notes')
 @UseGuards(JwtAuthGuard)
 export class NoteController {
   private readonly logger = new Logger(NoteController.name);
 
-  constructor(private readonly noteService: NoteService) {}
+  constructor(
+    private readonly noteService: NoteService,
+    private readonly cleanupService: CleanupService,
+  ) {}
 
   @Post()
   async create(@Body() noteDto: Partial<Note>, @Request() req: any) {
@@ -88,5 +92,17 @@ export class NoteController {
   async restoreFromTrash(@Param('id') id: string, @Request() req: any) {
     this.logger.log(`Restoring note from trash with ID: ${id}`);
     return this.noteService.restoreFromTrash(id, req.user.userId);
+  }
+
+  @Get('trash/stats')
+  async getTrashStats() {
+    this.logger.log('Getting trash statistics');
+    return this.noteService.getTrashStats();
+  }
+
+  @Post('trash/cleanup')
+  async manualTrashCleanup() {
+    this.logger.log('Manual trash cleanup requested');
+    return this.cleanupService.manualCleanup();
   }
 } 
