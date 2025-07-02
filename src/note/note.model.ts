@@ -21,6 +21,9 @@ export class Note {
   @Prop({ type: Date })
   dueDate?: Date;
 
+  @Prop({ required: true })
+  userId!: string;
+
   @Prop({ default: false })
   isArchived!: boolean;
 

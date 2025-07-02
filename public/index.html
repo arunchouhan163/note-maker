@@ -17,6 +17,7 @@
       font-family: 'Google Sans', Arial, sans-serif;
       background-color: #fafafa;
       color: #202124;
+      position: relative;
     }
 
     .app-container {
@@ -111,6 +112,7 @@
       flex: 1;
       display: flex;
       flex-direction: column;
+      position: relative;
     }
 
     .header {
@@ -536,6 +538,205 @@
       font-size: 12px;
     }
 
+    /* Header Actions */
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* User Section - Top Right */
+    .user-section-top-right {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      padding: 8px 12px;
+      border-radius: 8px;
+      transition: background-color 0.2s;
+      background-color: white;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e0e0e0;
+    }
+
+    .user-info:hover {
+      background-color: #f8f9fa;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: #1a73e8;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .user-email {
+      font-size: 14px;
+      font-weight: 500;
+      color: #202124;
+    }
+
+    .sign-in-btn {
+      background-color: #1a73e8;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .sign-in-btn:hover {
+      background-color: #1557b0;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+      transform: translateY(-1px);
+    }
+
+    .sign-in-btn:active {
+      transform: translateY(0);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Auth Modal Styles */
+    .auth-error {
+      background-color: #fef2f2;
+      color: #dc2626;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 14px;
+      margin-top: 8px;
+      margin-bottom: 16px;
+      border: 1px solid #fecaca;
+    }
+
+    .auth-switch {
+      font-size: 14px;
+      color: #5f6368;
+    }
+
+    .auth-switch a {
+      color: #1a73e8;
+      text-decoration: none;
+    }
+
+    .auth-switch a:hover {
+      text-decoration: underline;
+    }
+
+    .auth-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .form-hint {
+      font-size: 12px;
+      color: #5f6368;
+      margin-top: 4px;
+      display: block;
+    }
+
+    /* Password Input Styling */
+    .password-input-container {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .password-input {
+      padding-right: 40px !important;
+    }
+
+    .password-toggle {
+      position: absolute;
+      right: 12px;
+      background: none;
+      border: none;
+      color: #5f6368;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      transition: color 0.2s, background-color 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .password-toggle:hover {
+      color: #1a73e8;
+      background-color: #f8f9fa;
+    }
+
+    .password-toggle:focus {
+      outline: 2px solid #1a73e8;
+      outline-offset: 2px;
+    }
+
+    /* Profile Modal Styles */
+    .profile-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 20px 0;
+    }
+
+    .profile-avatar {
+      font-size: 48px;
+      color: #1a73e8;
+    }
+
+    .profile-details {
+      flex: 1;
+    }
+
+    .profile-email {
+      font-size: 18px;
+      font-weight: 500;
+      color: #202124;
+      margin-bottom: 4px;
+    }
+
+    .profile-joined {
+      font-size: 14px;
+      color: #5f6368;
+    }
+
+    .profile-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn-danger {
+      background-color: #d93025;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background-color: #b52d20;
+    }
+
     .modal-header {
       text-align: center;
       padding: 20px 0;
@@ -833,14 +1034,29 @@
 
     <!-- Main Content -->
     <div class="main-content">
+      <!-- User Section - Top Right -->
+      <div class="user-section-top-right" id="userSection">
+        <div class="user-info" id="userInfo" style="display: none;">
+          <div class="user-avatar" id="userAvatar">
+            <i class="fas fa-user"></i>
+          </div>
+          <span class="user-email" id="userEmail"></span>
+        </div>
+        <button class="sign-in-btn" id="signInBtn" style="display: block;">
+          <i class="fas fa-sign-in-alt"></i> Sign In
+        </button>
+      </div>
+
       <div class="header">
         <div class="search-container">
           <i class="fas fa-search search-icon"></i>
           <input type="text" class="search-input" placeholder="Search your notes..." id="searchInput">
         </div>
-        <button class="create-note-btn" id="createNoteBtn">
-          <i class="fas fa-plus"></i> Create Note
-        </button>
+        <div class="header-actions">
+          <button class="create-note-btn" id="createNoteBtn">
+            <i class="fas fa-plus"></i> Create Note
+          </button>
+        </div>
       </div>
 
       <div class="notes-container">
@@ -919,6 +1135,116 @@
           <span>Auto-saved</span>
         </div>
         <button type="button" class="btn btn-secondary" id="closeModalFooter">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sign In Modal -->
+  <div class="modal" id="signInModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Sign In</h3>
+      </div>
+      
+      <div class="modal-body">
+        <form id="signInForm">
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-input" id="signInEmail" required>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <div class="password-input-container">
+              <input type="password" class="form-input password-input" id="signInPassword" required>
+              <button type="button" class="password-toggle" id="signInPasswordToggle">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+          </div>
+          
+          <div class="auth-error" id="signInError" style="display: none;"></div>
+        </form>
+      </div>
+      
+      <div class="modal-footer">
+        <div class="auth-switch">
+          Don't have an account? <a href="#" id="switchToSignUp">Sign up</a>
+        </div>
+        <div class="auth-actions">
+          <button type="button" class="btn btn-secondary" id="cancelSignIn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="submitSignIn" form="signInForm">Sign In</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sign Up Modal -->
+  <div class="modal" id="signUpModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Sign Up</h3>
+      </div>
+      
+      <div class="modal-body">
+        <form id="signUpForm">
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-input" id="signUpEmail" required>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <div class="password-input-container">
+              <input type="password" class="form-input password-input" id="signUpPassword" required minlength="6">
+              <button type="button" class="password-toggle" id="signUpPasswordToggle">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+            <small class="form-hint">Password must be at least 6 characters</small>
+          </div>
+          
+          <div class="auth-error" id="signUpError" style="display: none;"></div>
+        </form>
+      </div>
+      
+      <div class="modal-footer">
+        <div class="auth-switch">
+          Already have an account? <a href="#" id="switchToSignIn">Sign in</a>
+        </div>
+        <div class="auth-actions">
+          <button type="button" class="btn btn-secondary" id="cancelSignUp">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="submitSignUp" form="signUpForm">Sign Up</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Profile Modal -->
+  <div class="modal" id="profileModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">User Profile</h3>
+      </div>
+      
+      <div class="modal-body">
+        <div class="profile-info">
+          <div class="profile-avatar">
+            <i class="fas fa-user-circle"></i>
+          </div>
+          <div class="profile-details">
+            <div class="profile-email" id="profileEmail"></div>
+            <div class="profile-joined">Member since <span id="profileJoined"></span></div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <div></div>
+        <div class="profile-actions">
+          <button type="button" class="btn btn-danger" id="logoutBtn">Logout</button>
+          <button type="button" class="btn btn-secondary" id="closeProfile">Close</button>
+        </div>
       </div>
     </div>
   </div>

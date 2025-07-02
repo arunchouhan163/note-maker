@@ -2,8 +2,16 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { GlobalExceptionFilter } from './utils/global-exception.filter';
+import * as mongoose from 'mongoose';
 
 async function bootstrap() {
+  // Ensure MongoDB connection for Typegoose models
+  if (!mongoose.connection.readyState) {
+    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/notemaker';
+    await mongoose.connect(mongoUri);
+    console.log('Connected to MongoDB for Typegoose models');
+  }
+
   const app = await NestFactory.create(AppModule);
   
   // Enable CORS

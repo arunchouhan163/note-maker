@@ -11,12 +11,11 @@ class NoteApp {
     this.completedItems = new Set();
     this.autosaveTimeout = null;
     this.isAutoSaving = false;
+    this.currentUser = null;
     
     this.initializeElements();
     this.bindEvents();
-    this.loadNotes();
-    this.loadTags();
-    this.loadDueDates();
+    this.checkAuthentication();
   }
 
   initializeElements() {
@@ -41,6 +40,26 @@ class NoteApp {
     this.upcomingList = document.getElementById('upcomingList');
     this.overdueCount = document.getElementById('overdueCount');
     this.upcomingCount = document.getElementById('upcomingCount');
+    
+    // Auth elements
+    this.userInfo = document.getElementById('userInfo');
+    this.userEmail = document.getElementById('userEmail');
+    this.signInBtn = document.getElementById('signInBtn');
+    this.signInModal = document.getElementById('signInModal');
+    this.signUpModal = document.getElementById('signUpModal');
+    this.profileModal = document.getElementById('profileModal');
+    this.signInForm = document.getElementById('signInForm');
+    this.signUpForm = document.getElementById('signUpForm');
+    this.signInEmail = document.getElementById('signInEmail');
+    this.signInPassword = document.getElementById('signInPassword');
+    this.signUpEmail = document.getElementById('signUpEmail');
+    this.signUpPassword = document.getElementById('signUpPassword');
+    this.signInError = document.getElementById('signInError');
+    this.signUpError = document.getElementById('signUpError');
+    this.profileEmail = document.getElementById('profileEmail');
+    this.profileJoined = document.getElementById('profileJoined');
+    this.signInPasswordToggle = document.getElementById('signInPasswordToggle');
+    this.signUpPasswordToggle = document.getElementById('signUpPasswordToggle');
   }
 
   bindEvents() {
@@ -94,6 +113,43 @@ class NoteApp {
         this.addTodoItem();
       }
     });
+
+    // Auth events
+    this.signInBtn.addEventListener('click', () => this.openSignInModal());
+    this.userInfo.addEventListener('click', () => this.openProfileModal());
+    this.signInForm.addEventListener('submit', (e) => this.handleSignIn(e));
+    this.signUpForm.addEventListener('submit', (e) => this.handleSignUp(e));
+    
+    // Modal close events
+    document.getElementById('cancelSignIn').addEventListener('click', () => this.closeSignInModal());
+    document.getElementById('cancelSignUp').addEventListener('click', () => this.closeSignUpModal());
+    document.getElementById('closeProfile').addEventListener('click', () => this.closeProfileModal());
+    document.getElementById('logoutBtn').addEventListener('click', () => this.handleLogout());
+    
+    // Modal switch events
+    document.getElementById('switchToSignUp').addEventListener('click', (e) => {
+      e.preventDefault();
+      this.closeSignInModal();
+      this.openSignUpModal();
+    });
+    document.getElementById('switchToSignIn').addEventListener('click', (e) => {
+      e.preventDefault();
+      this.closeSignUpModal();
+      this.openSignInModal();
+    });
+
+    // Close modals on outside click
+    [this.signInModal, this.signUpModal, this.profileModal].forEach(modal => {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          modal.style.display = 'none';
+        }
+      });
+    });
+
+    // Password toggle events
+    this.signInPasswordToggle.addEventListener('click', () => this.togglePasswordVisibility('signIn'));
+    this.signUpPasswordToggle.addEventListener('click', () => this.togglePasswordVisibility('signUp'));
   }
 
   async loadNotes() {
@@ -708,6 +764,145 @@ class NoteApp {
       `;
     } else {
       this.dueDateStatus.style.display = 'none';
+    }
+  }
+
+  // Authentication methods
+  async checkAuthentication() {
+    if (apiService.isAuthenticated()) {
+      try {
+        this.currentUser = await apiService.getProfile();
+        this.updateUserInterface();
+        this.loadNotes();
+        this.loadTags();
+        this.loadDueDates();
+      } catch (error) {
+        console.error('Failed to get user profile:', error);
+        this.handleLogout();
+      }
+    } else {
+      this.showSignInState();
+    }
+  }
+
+  updateUserInterface() {
+    this.userEmail.textContent = this.currentUser.email;
+    this.userInfo.style.display = 'flex';
+    this.signInBtn.style.display = 'none';
+  }
+
+  showSignInState() {
+    this.userInfo.style.display = 'none';
+    this.signInBtn.style.display = 'block';
+    this.showEmptyState('Please sign in to view your notes');
+  }
+
+  openSignInModal() {
+    this.signInError.style.display = 'none';
+    this.signInForm.reset();
+    this.signInModal.style.display = 'block';
+  }
+
+  openSignUpModal() {
+    this.signUpError.style.display = 'none';
+    this.signUpForm.reset();
+    this.signUpModal.style.display = 'block';
+  }
+
+  openProfileModal() {
+    if (!this.currentUser) return;
+    
+    this.profileEmail.textContent = this.currentUser.email;
+    this.profileJoined.textContent = new Date().toLocaleDateString(); // Placeholder
+    this.profileModal.style.display = 'block';
+  }
+
+  closeSignInModal() {
+    this.signInModal.style.display = 'none';
+  }
+
+  closeSignUpModal() {
+    this.signUpModal.style.display = 'none';
+  }
+
+  closeProfileModal() {
+    this.profileModal.style.display = 'none';
+  }
+
+  async handleSignIn(e) {
+    e.preventDefault();
+    
+    const email = this.signInEmail.value.trim();
+    const password = this.signInPassword.value;
+
+    try {
+      const response = await apiService.login(email, password);
+      if (response && response.access_token && response.user) {
+        this.currentUser = response.user;
+        this.updateUserInterface();
+        this.closeSignInModal();
+        this.loadNotes();
+        this.loadTags();
+        this.loadDueDates();
+      } else {
+        throw new Error('Invalid response from server');
+      }
+    } catch (error) {
+      console.error('Login failed:', error);
+      this.showAuthError('signIn', error.message || 'Login failed');
+    }
+  }
+
+  async handleSignUp(e) {
+    e.preventDefault();
+    
+    const email = this.signUpEmail.value.trim();
+    const password = this.signUpPassword.value;
+
+    // Let backend handle all validation to show consistent messages
+    try {
+      const response = await apiService.register(email, password);
+      if (response && response.access_token && response.user) {
+        this.currentUser = response.user;
+        this.updateUserInterface();
+        this.closeSignUpModal();
+        this.loadNotes();
+        this.loadTags();
+        this.loadDueDates();
+      } else {
+        throw new Error('Invalid response from server');
+      }
+    } catch (error) {
+      console.error('Registration failed:', error);
+      this.showAuthError('signUp', error.message || 'Registration failed');
+    }
+  }
+
+  handleLogout() {
+    apiService.logout();
+    this.currentUser = null;
+    this.notes = [];
+    this.showSignInState();
+    this.closeProfileModal();
+  }
+
+  showAuthError(type, message) {
+    const errorElement = type === 'signIn' ? this.signInError : this.signUpError;
+    errorElement.textContent = message;
+    errorElement.style.display = 'block';
+  }
+
+  togglePasswordVisibility(type) {
+    const passwordInput = type === 'signIn' ? this.signInPassword : this.signUpPassword;
+    const toggleButton = type === 'signIn' ? this.signInPasswordToggle : this.signUpPasswordToggle;
+    const icon = toggleButton.querySelector('i');
+
+    if (passwordInput.type === 'password') {
+      passwordInput.type = 'text';
+      icon.className = 'fas fa-eye-slash';
+    } else {
+      passwordInput.type = 'password';
+      icon.className = 'fas fa-eye';
     }
   }
 }
