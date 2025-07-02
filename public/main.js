@@ -143,6 +143,10 @@ class NoteApp {
       modal.addEventListener('click', (e) => {
         if (e.target === modal) {
           modal.style.display = 'none';
+          // Remove blur effect for auth modals
+          if (modal === this.signInModal || modal === this.signUpModal) {
+            this.removeBackgroundBlur();
+          }
         }
       });
     });
@@ -150,6 +154,21 @@ class NoteApp {
     // Password toggle events
     this.signInPasswordToggle.addEventListener('click', () => this.togglePasswordVisibility('signIn'));
     this.signUpPasswordToggle.addEventListener('click', () => this.togglePasswordVisibility('signUp'));
+
+    // Window focus event for authentication check
+    window.addEventListener('focus', () => {
+      console.log('Window focus event fired');
+      this.handleWindowFocus();
+    });
+    
+    // Page visibility API for better tab focus detection
+    document.addEventListener('visibilitychange', () => {
+      console.log('Visibility change event fired, document hidden:', document.hidden);
+      if (!document.hidden) {
+        console.log('Tab became visible, triggering auth check');
+        this.handleWindowFocus();
+      }
+    });
   }
 
   async loadNotes() {
@@ -801,12 +820,14 @@ class NoteApp {
     this.signInError.style.display = 'none';
     this.signInForm.reset();
     this.signInModal.style.display = 'block';
+    this.applyBackgroundBlur();
   }
 
   openSignUpModal() {
     this.signUpError.style.display = 'none';
     this.signUpForm.reset();
     this.signUpModal.style.display = 'block';
+    this.applyBackgroundBlur();
   }
 
   openProfileModal() {
@@ -819,10 +840,12 @@ class NoteApp {
 
   closeSignInModal() {
     this.signInModal.style.display = 'none';
+    this.removeBackgroundBlur();
   }
 
   closeSignUpModal() {
     this.signUpModal.style.display = 'none';
+    this.removeBackgroundBlur();
   }
 
   closeProfileModal() {
@@ -905,9 +928,119 @@ class NoteApp {
       icon.className = 'fas fa-eye';
     }
   }
+
+  // Window focus handler for authentication check
+  async handleWindowFocus() {
+    console.log('Window focus event triggered');
+    console.log('Is authenticated:', apiService.isAuthenticated());
+    
+    // Only check if we think we're authenticated
+    if (apiService.isAuthenticated()) {
+      // Check if token is expiring soon
+      if (apiService.isTokenExpiringSoon()) {
+        const expiry = apiService.getTokenExpiry();
+        console.warn('⚠️ Token expires soon:', expiry ? expiry.toLocaleString() : 'Unknown');
+        // You could show a notification here asking user to refresh their session
+      }
+      
+      try {
+        console.log('Calling profile API to verify authentication...');
+        const profile = await apiService.getProfile();
+        console.log('Profile API succeeded - user is still authenticated');
+        // Profile API succeeded, user is still authenticated
+        if (!this.currentUser && profile) {
+          this.currentUser = profile;
+          this.updateUserInterface();
+        }
+      } catch (error) {
+        console.log('Authentication expired, showing sign-in modal');
+        console.error('Profile API error:', error);
+        // API returned unauthenticated, show sign-in modal
+        // Note: The API service automatically handles logout on 401, so we just need to show the modal
+        if (!this.signInModal || this.signInModal.style.display === 'none') {
+          this.openSignInModal();
+        }
+      }
+    } else {
+      console.log('User not authenticated, skipping profile check');
+    }
+  }
+
+  // Test method to manually trigger auth check (for debugging)
+  testAuthCheck() {
+    console.log('Manual auth check triggered');
+    this.handleWindowFocus();
+  }
+
+  // Get token information for debugging
+  getTokenInfo() {
+    const isAuth = apiService.isAuthenticated();
+    const expiry = apiService.getTokenExpiry();
+    const expiringSoon = apiService.isTokenExpiringSoon();
+    
+    console.log('=== TOKEN INFO ===');
+    console.log('Is Authenticated:', isAuth);
+    console.log('Token Expiry:', expiry ? expiry.toLocaleString() : 'No expiry found');
+    console.log('Expires Soon (< 1 hour):', expiringSoon);
+    console.log('Current Time:', new Date().toLocaleString());
+    
+    if (expiry) {
+      const timeLeft = expiry.getTime() - new Date().getTime();
+      const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));
+      const minutesLeft = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+      console.log(`Time until expiry: ${hoursLeft}h ${minutesLeft}m`);
+    }
+    
+    return { isAuth, expiry, expiringSoon };
+  }
+
+  // Background blur effects
+  applyBackgroundBlur() {
+    const appContainer = document.querySelector('.app-container');
+    if (appContainer) {
+      appContainer.classList.add('blur-background');
+    }
+  }
+
+  removeBackgroundBlur() {
+    const appContainer = document.querySelector('.app-container');
+    if (appContainer) {
+      appContainer.classList.remove('blur-background');
+    }
+  }
 }
 
 // Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
   window.noteApp = new NoteApp();
+  
+  // Expose test methods globally for debugging
+  window.testAuthCheck = () => {
+    if (window.noteApp) {
+      window.noteApp.testAuthCheck();
+    } else {
+      console.log('NoteApp not initialized yet');
+    }
+  };
+  
+  window.getTokenInfo = () => {
+    if (window.noteApp) {
+      return window.noteApp.getTokenInfo();
+    } else {
+      console.log('NoteApp not initialized yet');
+      return null;
+    }
+  };
+  
+  window.clearToken = () => {
+    if (window.apiService || apiService) {
+      (window.apiService || apiService).clearToken();
+      console.log('Token cleared manually');
+      if (window.noteApp) {
+        window.noteApp.handleLogout();
+      }
+    } else {
+      console.log('ApiService not available');    
+    }
+  };
 }); 

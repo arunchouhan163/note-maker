@@ -3,28 +3,117 @@ const API_BASE_URL = '/api';
 class ApiService {
   constructor() {
     this.baseUrl = API_BASE_URL;
-    this.token = localStorage.getItem('auth_token');
+    this.tokenKey = 'auth_token';
+    this.tokenExpiryKey = 'auth_token_expiry';
+    this.encryptionKey = 'notemaker_app_key'; // Simple key for basic obfuscation
+  }
+
+  // Simple XOR encryption/decryption for token obfuscation
+  // Note: This is not cryptographically secure, just basic obfuscation
+  encrypt(text) {
+    if (!text) return null;
+    let result = '';
+    for (let i = 0; i < text.length; i++) {
+      result += String.fromCharCode(text.charCodeAt(i) ^ this.encryptionKey.charCodeAt(i % this.encryptionKey.length));
+    }
+    return btoa(result); // Base64 encode
+  }
+
+  decrypt(encryptedText) {
+    if (!encryptedText) return null;
+    try {
+      const text = atob(encryptedText); // Base64 decode
+      let result = '';
+      for (let i = 0; i < text.length; i++) {
+        result += String.fromCharCode(text.charCodeAt(i) ^ this.encryptionKey.charCodeAt(i % this.encryptionKey.length));
+      }
+      return result;
+    } catch (error) {
+      console.error('Failed to decrypt token:', error);
+      return null;
+    }
+  }
+
+  // Always read token from localStorage
+  getToken() {
+    try {
+      const encryptedToken = localStorage.getItem(this.tokenKey);
+      if (!encryptedToken) return null;
+      
+      const token = this.decrypt(encryptedToken);
+      if (!token) return null;
+
+      // Check token expiry
+      const expiry = localStorage.getItem(this.tokenExpiryKey);
+      if (expiry && new Date() > new Date(expiry)) {
+        console.log('Token expired, clearing from storage');
+        this.clearToken();
+        return null;
+      }
+
+      return token;
+    } catch (error) {
+      console.error('Error reading token from localStorage:', error);
+      this.clearToken();
+      return null;
+    }
   }
 
   setToken(token) {
-    this.token = token;
-    if (token) {
-      localStorage.setItem('auth_token', token);
-    } else {
-      localStorage.removeItem('auth_token');
+    try {
+      if (token) {
+        // Encrypt token before storing
+        const encryptedToken = this.encrypt(token);
+        localStorage.setItem(this.tokenKey, encryptedToken);
+        
+        // Set expiry time (24 hours from now)
+        const expiryTime = new Date();
+        expiryTime.setHours(expiryTime.getHours() + 24);
+        localStorage.setItem(this.tokenExpiryKey, expiryTime.toISOString());
+        
+        console.log('Token stored securely with expiry:', expiryTime.toISOString());
+      } else {
+        this.clearToken();
+      }
+    } catch (error) {
+      console.error('Error storing token in localStorage:', error);
+      this.clearToken();
     }
+  }
+
+  clearToken() {
+    localStorage.removeItem(this.tokenKey);
+    localStorage.removeItem(this.tokenExpiryKey);
   }
 
   getAuthHeaders() {
     const headers = { 'Content-Type': 'application/json' };
-    if (this.token) {
-      headers.Authorization = `Bearer ${this.token}`;
+    const token = this.getToken();
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
     }
     return headers;
   }
 
   isAuthenticated() {
-    return !!this.token;
+    const token = this.getToken();
+    return !!token;
+  }
+
+  // Get token expiry info
+  getTokenExpiry() {
+    const expiry = localStorage.getItem(this.tokenExpiryKey);
+    return expiry ? new Date(expiry) : null;
+  }
+
+  // Check if token will expire soon (within 1 hour)
+  isTokenExpiringSoon() {
+    const expiry = this.getTokenExpiry();
+    if (!expiry) return false;
+    
+    const now = new Date();
+    const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+    return expiry < oneHourFromNow;
   }
 
   async makeRequest(endpoint, options = {}) {
@@ -44,7 +133,8 @@ class ApiService {
         // Token expired or invalid - but for login/register, we should still throw the error
         const isAuthEndpoint = url.includes('/auth/login') || url.includes('/auth/register');
         if (!isAuthEndpoint) {
-          this.setToken(null);
+          console.log('401 Unauthorized - clearing token and triggering logout');
+          this.clearToken();
           if (window.noteApp) {
             window.noteApp.handleLogout();
           }
@@ -193,7 +283,8 @@ class ApiService {
   }
 
   logout() {
-    this.setToken(null);
+    console.log('Logging out - clearing token from storage');
+    this.clearToken();
   }
 }
 
