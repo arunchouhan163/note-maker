@@ -88,6 +88,10 @@ class ApiService {
     return this.makeRequest('/notes/tags');
   }
 
+  async getDueDateNotes() {
+    return this.makeRequest('/notes/due-dates');
+  }
+
   async getNotesByTag(tag) {
     return this.makeRequest(`/notes/tags/${encodeURIComponent(tag)}`);
   }

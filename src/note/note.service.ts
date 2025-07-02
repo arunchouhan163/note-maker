@@ -91,4 +91,24 @@ export class NoteService {
     if (!note) throw new NotFoundException('Note not found');
     return note;
   }
+
+  async getDueDateNotes(): Promise<{ overdue: Note[], upcoming: Note[] }> {
+    const now = new Date();
+    const nextWeek = new Date();
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    
+    const [overdue, upcoming] = await Promise.all([
+      this.noteModel.find({
+        isTrashed: false,
+        dueDate: { $lt: now }
+      }).sort({ dueDate: 1 }).exec(),
+      
+      this.noteModel.find({
+        isTrashed: false,
+        dueDate: { $gte: now, $lte: nextWeek }
+      }).sort({ dueDate: 1 }).exec()
+    ]);
+
+    return { overdue, upcoming };
+  }
 } 

@@ -16,6 +16,7 @@ class NoteApp {
     this.bindEvents();
     this.loadNotes();
     this.loadTags();
+    this.loadDueDates();
   }
 
   initializeElements() {
@@ -30,10 +31,15 @@ class NoteApp {
     this.addTodoBtn = document.getElementById('addTodoBtn');
     this.todoItemsList = document.getElementById('todoItemsList');
     this.noteTags = document.getElementById('noteTags');
+    this.noteDueDate = document.getElementById('noteDueDate');
     this.colorPicker = document.getElementById('colorPicker');
     this.closeModalFooterBtn = document.getElementById('closeModalFooter');
     this.autosaveStatus = document.getElementById('autosaveStatus');
     this.tagsList = document.getElementById('tagsList');
+    this.overdueList = document.getElementById('overdueList');
+    this.upcomingList = document.getElementById('upcomingList');
+    this.overdueCount = document.getElementById('overdueCount');
+    this.upcomingCount = document.getElementById('upcomingCount');
   }
 
   bindEvents() {
@@ -52,6 +58,7 @@ class NoteApp {
     // Autosave events
     this.noteTitle.addEventListener('input', () => this.scheduleAutosave());
     this.noteTags.addEventListener('input', () => this.scheduleAutosave());
+    this.noteDueDate.addEventListener('change', () => this.scheduleAutosave());
 
     // Color picker
     this.colorPicker.addEventListener('click', (e) => {
@@ -117,6 +124,19 @@ class NoteApp {
     }
   }
 
+  async loadDueDates() {
+    try {
+      const { overdue, upcoming } = await apiService.getDueDateNotes();
+      this.renderDueDates(overdue, upcoming);
+    } catch (error) {
+      console.error('Error loading due dates:', error);
+      this.overdueCount.textContent = '0';
+      this.upcomingCount.textContent = '0';
+      this.overdueList.innerHTML = '<div style="padding: 8px; color: #9aa0a6; font-size: 11px;">No overdue notes</div>';
+      this.upcomingList.innerHTML = '<div style="padding: 8px; color: #9aa0a6; font-size: 11px;">No upcoming notes</div>';
+    }
+  }
+
   renderNotes() {
     if (this.notes.length === 0) {
       this.showEmptyState();
@@ -170,9 +190,19 @@ class NoteApp {
     const pendingItems = items.filter((item, index) => !completedIndexes.has(index));
     const completedItems = items.filter((item, index) => completedIndexes.has(index));
     
+    // Handle due date
+    const dueDateInfo = this.getDueDateInfo(note.dueDate);
+    
     return `
       <div class="note-card" style="background-color: ${note.backgroundColor || '#ffffff'}">
         <div class="note-title">${this.escapeHtml(note.title)}</div>
+        
+        ${dueDateInfo ? `
+          <div class="note-due-date ${dueDateInfo.class}">
+            <i class="fas fa-${dueDateInfo.icon}"></i>
+            <span>${dueDateInfo.text}</span>
+          </div>
+        ` : ''}
         
         ${pendingItems.length > 0 ? `
           <div class="note-section">
@@ -196,11 +226,13 @@ class NoteApp {
           <div class="note-content" style="color: #9aa0a6; font-style: italic;">No items yet</div>
         ` : ''}
         
-        ${note.tags && note.tags.length > 0 ? `
-          <div class="note-tags">
-            ${note.tags.map(tag => `<span class="note-tag">${this.escapeHtml(tag)}</span>`).join('')}
-          </div>
-        ` : ''}
+        <div class="note-meta-section">
+          ${note.tags && note.tags.length > 0 ? `
+            <div class="note-tags">
+              ${note.tags.map(tag => `<span class="note-tag">${this.escapeHtml(tag)}</span>`).join('')}
+            </div>
+          ` : '<div></div>'}
+        </div>
         
         <div class="note-actions">
           <div class="note-date">
@@ -309,6 +341,7 @@ class NoteApp {
     this.completedItems = new Set(note.completedItems || []);
     this.renderTodoItems();
     this.noteTags.value = note.tags ? note.tags.join(', ') : '';
+    this.noteDueDate.value = note.dueDate ? this.formatDateForInput(note.dueDate) : '';
     this.selectColor(this.colorPicker.querySelector(`[data-color="${note.backgroundColor || '#ffffff'}"]`));
     this.noteModal.style.display = 'block';
   }
@@ -358,7 +391,8 @@ class NoteApp {
       items: this.todoItems,
       completedItems: Array.from(this.completedItems),
       tags: this.noteTags.value.split(',').map(tag => tag.trim()).filter(tag => tag),
-      backgroundColor: this.selectedColor
+      backgroundColor: this.selectedColor,
+      dueDate: this.noteDueDate.value ? new Date(this.noteDueDate.value).toISOString() : null
     };
 
     // Validate required fields
@@ -388,6 +422,7 @@ class NoteApp {
       this.showAutosaveStatus('saved');
       this.loadNotes();
       this.loadTags();
+      this.loadDueDates();
     } catch (error) {
       console.error('Error saving note:', error);
       this.showAutosaveStatus('error', 'Failed to save');
@@ -573,6 +608,68 @@ class NoteApp {
         </div>
       `;
     }).join('');
+  }
+
+  getDueDateInfo(dueDate) {
+    if (!dueDate) return null;
+
+    const due = new Date(dueDate);
+    const now = new Date();
+    const diffTime = due.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffTime < 0) {
+      const overdueDays = Math.abs(diffDays);
+      return {
+        class: 'overdue',
+        icon: 'exclamation-triangle',
+        text: overdueDays === 0 ? 'Due today' : `${overdueDays} day${overdueDays > 1 ? 's' : ''} overdue`
+      };
+    } else if (diffDays <= 7) {
+      return {
+        class: 'upcoming',
+        icon: 'clock',
+        text: diffDays === 0 ? 'Due today' : `Due in ${diffDays} day${diffDays > 1 ? 's' : ''}`
+      };
+    } else {
+      return {
+        class: 'neutral',
+        icon: 'calendar',
+        text: `Due ${due.toLocaleDateString()}`
+      };
+    }
+  }
+
+  formatDateForInput(dateString) {
+    const date = new Date(dateString);
+    return date.toISOString().slice(0, 16);
+  }
+
+  renderDueDates(overdue, upcoming) {
+    this.overdueCount.textContent = overdue.length;
+    this.upcomingCount.textContent = upcoming.length;
+
+    if (overdue.length === 0) {
+      this.overdueList.innerHTML = '<div style="padding: 8px; color: #9aa0a6; font-size: 11px;">No overdue notes</div>';
+    } else {
+      this.overdueList.innerHTML = overdue.map(note => `
+        <div class="due-note-item" onclick="window.noteApp.openEditModal(${JSON.stringify(note).replace(/"/g, '&quot;')})">
+          <div class="due-note-title">${this.escapeHtml(note.title)}</div>
+          <div class="due-note-date">${this.getDueDateInfo(note.dueDate).text}</div>
+        </div>
+      `).join('');
+    }
+
+    if (upcoming.length === 0) {
+      this.upcomingList.innerHTML = '<div style="padding: 8px; color: #9aa0a6; font-size: 11px;">No upcoming notes</div>';
+    } else {
+      this.upcomingList.innerHTML = upcoming.map(note => `
+        <div class="due-note-item" onclick="window.noteApp.openEditModal(${JSON.stringify(note).replace(/"/g, '&quot;')})">
+          <div class="due-note-title">${this.escapeHtml(note.title)}</div>
+          <div class="due-note-date">${this.getDueDateInfo(note.dueDate).text}</div>
+        </div>
+      `).join('');
+    }
   }
 }
 

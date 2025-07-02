@@ -52,6 +52,12 @@ export class NoteController {
     return this.noteService.getNotesByTag(tag);
   }
 
+  @Get('due-dates')
+  async getDueDateNotes() {
+    this.logger.log('Fetching overdue and upcoming notes');
+    return this.noteService.getDueDateNotes();
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     this.logger.log(`Fetching note with ID: ${id}`);

@@ -18,6 +18,9 @@ export class Note {
   @Prop({ default: '#ffffff' })
   backgroundColor!: string;
 
+  @Prop({ type: Date })
+  dueDate?: Date;
+
   @Prop({ default: false })
   isArchived!: boolean;
 
