@@ -263,27 +263,3 @@ Modify `src/tasks/cleanup.service.ts` to adjust cleanup schedules:
 @Cron('0 */6 * * *')
 ```
 
-
-**Authentication Issues**
-- Verify JWT_SECRET is set in `.env`
-- Check browser console for token errors
-- Ensure passwords meet minimum requirements (6 characters)
-
-### Debug Mode
-
-Enable debug logging by setting:
-```bash
-NODE_ENV=development
-```
-
-### Support
-
-For additional support or questions:
-1. Check the troubleshooting section above
-2. Review the test scripts for examples
-3. Examine the API endpoints documentation
-4. Create an issue in the repository
-
----
-
-**Happy Note-Taking! 📝✨** 
