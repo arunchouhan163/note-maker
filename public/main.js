@@ -17,6 +17,7 @@ class NoteApp {
     
     this.initializeElements();
     this.bindEvents();
+    this.initializeSidebar();
     this.checkAuthentication();
   }
 
@@ -42,6 +43,10 @@ class NoteApp {
     this.upcomingList = document.getElementById('upcomingList');
     this.overdueCount = document.getElementById('overdueCount');
     this.upcomingCount = document.getElementById('upcomingCount');
+    
+    // Sidebar elements
+    this.sidebar = document.getElementById('sidebar');
+    this.sidebarToggle = document.getElementById('sidebarToggle');
     
     // Auth elements
     this.userInfo = document.getElementById('userInfo');
@@ -156,6 +161,9 @@ class NoteApp {
     // Password toggle events
     this.signInPasswordToggle.addEventListener('click', () => this.togglePasswordVisibility('signIn'));
     this.signUpPasswordToggle.addEventListener('click', () => this.togglePasswordVisibility('signUp'));
+
+    // Sidebar toggle
+    this.sidebarToggle.addEventListener('click', () => this.toggleSidebar());
 
     // Window focus event for authentication check
     window.addEventListener('focus', () => {
@@ -1051,6 +1059,38 @@ class NoteApp {
     const appContainer = document.querySelector('.app-container');
     if (appContainer) {
       appContainer.classList.remove('blur-background');
+    }
+  }
+
+  // Sidebar functionality
+  initializeSidebar() {
+    const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
+    if (isCollapsed) {
+      this.sidebar.classList.add('collapsed');
+      this.updateSidebarToggleIcon(true);
+    }
+  }
+
+  toggleSidebar() {
+    const isCollapsed = this.sidebar.classList.contains('collapsed');
+    
+    if (isCollapsed) {
+      this.sidebar.classList.remove('collapsed');
+      localStorage.setItem('sidebar-collapsed', 'false');
+      this.updateSidebarToggleIcon(false);
+    } else {
+      this.sidebar.classList.add('collapsed');
+      localStorage.setItem('sidebar-collapsed', 'true');
+      this.updateSidebarToggleIcon(true);
+    }
+  }
+
+  updateSidebarToggleIcon(isCollapsed) {
+    const icon = this.sidebarToggle.querySelector('i');
+    if (isCollapsed) {
+      icon.className = 'fas fa-chevron-right';
+    } else {
+      icon.className = 'fas fa-bars';
     }
   }
 }

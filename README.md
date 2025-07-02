@@ -50,27 +50,6 @@ NODE_ENV=development
 PORT=3000
 ```
 
-### 4. Start MongoDB
-Make sure MongoDB is running on your system:
-
-```bash
-# On macOS with Homebrew
-brew services start mongodb-community
-
-# On Ubuntu/Debian
-sudo systemctl start mongod
-
-# On Windows
-net start MongoDB
-```
-
-### 5. Run the Application
-
-#### Development Mode
-```bash
-npm run start:dev
-```
-
 #### Production Mode
 ```bash
 npm run build
@@ -78,23 +57,6 @@ npm run start:prod
 ```
 
 The application will be available at: `http://localhost:3000`
-
-## 🧪 Testing
-
-### Test Database Connection
-```bash
-node test-user.js
-```
-
-### Test Authentication API
-```bash
-node test-api.js
-```
-
-### Test Trash Cleanup System
-```bash
-node test-trash-cleanup.js
-```
 
 ## 🏗️ Database Architecture
 
@@ -288,56 +250,6 @@ note-maker/
 └── README.md
 ```
 
-## 🚀 Deployment
-
-### Production Checklist
-
-1. **Environment Variables**
-   - Set strong `JWT_SECRET`
-   - Configure production MongoDB URI
-   - Set `NODE_ENV=production`
-
-2. **Database Setup**
-   - Create production MongoDB database
-   - Set up database indexes for performance
-   - Configure backup strategy
-
-3. **Security**
-   - Enable HTTPS
-   - Configure CORS for production domains
-   - Set up rate limiting
-   - Enable MongoDB authentication
-
-4. **Monitoring**
-   - Set up application logging
-   - Monitor cron job execution
-   - Track database performance
-   - Set up alerts for failures
-
-### Docker Deployment (Optional)
-
-```dockerfile
-# Dockerfile example
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
-RUN npm run build
-EXPOSE 3000
-CMD ["npm", "run", "start:prod"]
-```
-
-## 🔧 Configuration
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `MONGODB_URI` | MongoDB connection string | `mongodb://localhost:27017/notemaker` |
-| `JWT_SECRET` | Secret key for JWT tokens | `secretKey` |
-| `NODE_ENV` | Environment mode | `development` |
-| `PORT` | Application port | `3000` |
 
 ### Cron Job Configuration
 
@@ -351,39 +263,6 @@ Modify `src/tasks/cleanup.service.ts` to adjust cleanup schedules:
 @Cron('0 */6 * * *')
 ```
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📝 License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-## 🆘 Troubleshooting
-
-### Common Issues
-
-**MongoDB Connection Error**
-```bash
-# Check if MongoDB is running
-sudo systemctl status mongod
-
-# Start MongoDB service
-sudo systemctl start mongod
-```
-
-**Port Already in Use**
-```bash
-# Find process using port 3000
-lsof -ti:3000
-
-# Kill the process
-kill -9 <PID>
-```
 
 **Authentication Issues**
 - Verify JWT_SECRET is set in `.env`
